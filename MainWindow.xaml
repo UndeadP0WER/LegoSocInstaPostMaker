@@ -1,0 +1,69 @@
+﻿<Window x:Class="LegoSocInstaPostMaker.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:LegoSocInstaPostMaker"
+        mc:Ignorable="d"
+        Title="LegoSoc Border Builder" Height="450" Width="800"
+        SizeChanged="Bricks_SizeChanged"
+        KeyDown="MainGrid_KeyDown"
+        >
+    <Grid x:Name="MainGrid" AllowDrop="True" >
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="5"/>
+            <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="auto"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+
+        <Menu VerticalAlignment="Top" Height="20">
+            <MenuItem Header="File">
+                <MenuItem Header="_New" Click="New_Click"/>
+                <MenuItem Header="_Save" Click="Save_Click"/>
+                <MenuItem Header="Save _As" Click="SaveAs_Click"/>
+                <Separator/>
+                <MenuItem Header="_Open Centre" Click="OpenCentre_Click"/>
+                <MenuItem Header="Open _Right" Click="OpenRight_Click"/>
+
+            </MenuItem>
+            <MenuItem Header="Export" Click="Export_Click"/>
+        </Menu>
+
+        <Grid x:Name="Selector" Grid.Column="0" Background="DarkGray" Margin="10, 25, 10, 10">
+            <!--width 20 margins, 4 cells wide for up to 4 long bricks-->
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="20"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="20"/>
+            </Grid.RowDefinitions>
+        </Grid>
+
+        <ResizeGrip Grid.Column="1" Grid.Row="0" HorizontalAlignment="Stretch" Background="Black"/>
+
+        <Grid x:Name="Bricks" Grid.Column="2" Grid.Row="0" Background="LightGray" Margin="10" HorizontalAlignment="Center" MouseDown="Grid_Click" MouseUp="MainGrid_MouseUp"/>
+
+
+
+    </Grid>
+</Window>
