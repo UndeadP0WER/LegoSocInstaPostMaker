@@ -79,6 +79,8 @@ namespace LegoSocInstaPostMaker {
         }
 
         #region Events
+
+        #region Drag & Drop
         //handles starting the drag event
         private void Grid_MouseMove(object sender, MouseEventArgs e) {
             if (e.LeftButton == MouseButtonState.Pressed) {
@@ -86,6 +88,8 @@ namespace LegoSocInstaPostMaker {
             }
             e.Handled = true;
         }
+
+        #endregion
 
         #endregion
 

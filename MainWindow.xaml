@@ -22,7 +22,7 @@
         </Grid.RowDefinitions>
 
         <Menu VerticalAlignment="Top" Height="20">
-            <MenuItem Header="File">
+            <MenuItem Header="_File">
                 <MenuItem Header="_New" Click="New_Click"/>
                 <MenuItem Header="_Save" Click="Save_Click"/>
                 <MenuItem Header="Save _As" Click="SaveAs_Click"/>
@@ -31,7 +31,18 @@
                 <MenuItem Header="Open _Right" Click="OpenRight_Click"/>
 
             </MenuItem>
-            <MenuItem Header="Export" Click="Export_Click"/>
+            <MenuItem Header="_Export" Click="Export_Click"/>
+            
+            <MenuItem Header="_Generate">
+                <MenuItem Header="_Top" Click="GenerateTop_Click"/>
+                <MenuItem Header="_Bottom" Click="GenerateBottom_Click"/>
+                <MenuItem Header="_Left" Click="GenerateLeft_Click"/>
+                <MenuItem Header="_Right" Click="GenerateRight_Click"/>
+                <Separator/>
+                <MenuItem Header="Top, Botto_m and Left" Click="GenerateTBL_Click"/>
+                <MenuItem Header="_All" Click="GenerateAll_Click"/>
+
+            </MenuItem>
         </Menu>
 
         <Grid x:Name="Selector" Grid.Column="0" Background="DarkGray" Margin="10, 25, 10, 10">

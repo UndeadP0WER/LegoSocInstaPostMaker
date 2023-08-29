@@ -10,6 +10,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Input;
+using System.Linq;
 
 namespace LegoSocInstaPostMaker {
     /// <summary>
@@ -54,6 +55,11 @@ namespace LegoSocInstaPostMaker {
         //save file location
         string saveLocation = "";
 
+        //furthest left when loading in
+        int leftmost = -1;
+
+        //random
+        static System.Random rnd = new System.Random();
         #endregion
 
         #region Init
@@ -151,6 +157,9 @@ namespace LegoSocInstaPostMaker {
             Bricks.Children.Clear();
             Bricks.RowDefinitions.Clear();
             Bricks.ColumnDefinitions.Clear();
+
+            //resets leftmost
+            leftmost = -1; 
         }
 
         //adds a brick
@@ -197,6 +206,134 @@ namespace LegoSocInstaPostMaker {
         }
 
         #endregion
+
+
+        #region Border Generation
+        /// <summary>
+        /// Generates a set of bricks that fill a horizontal line
+        /// </summary>
+        /// <param name="start">The X coordinate of the start position of the generation</param>
+        /// <param name="end">The X coordinate of the end position of the generation</param>
+        /// <param name="y">The Y coordinate the generation is at</param>
+        /// <param name="weights">The weights of each brick length. weights[i] is the weighting of bricks with (i+1) studs.</param>
+        /// <param name="truncateEnd">If the final brick is truncated to meet the end exactly</param>
+        /// <returns>An Array of Bricks that fill the given line, that have also been placed.</returns>
+        private Brick[] GenerateHorizontal(int start, int end, int y, int[] weights, bool truncateEnd) {
+
+            //list of generated bricks
+            List<Brick> generated = new List<Brick>();
+
+            //location of the current end of the generation
+            int curr = start;
+
+            //flag for if filled. if start is the same as end then its filled, else false
+            bool filled = (start==end);
+
+            //flag for direction, if start is bigger than end it is filling left to right
+            bool leftToRight = (start < end);
+
+
+            while (!filled) {
+                //generates another brick based on weightings
+                int studs = GenerateFromWeights(weights) + 1;
+
+
+
+                //places the brick and moves the current according to direction
+                if (leftToRight) {
+                    //checks if it needs to truncate
+                    if (curr+studs > end) {
+                        studs = end - curr;
+                    }
+
+                    generated.Add(AddBrick(studs, BrickColour.GetRandom(), curr, y));
+                    curr += studs;
+
+                    if (curr >= end) { 
+                        filled = true; 
+                    }
+                }
+                else {
+                    if (curr - studs < end) {
+                        studs = curr - end;
+                    }
+
+                    curr -= studs;
+                    generated.Add(AddBrick(studs, BrickColour.GetRandom(), curr, y));
+
+                    if (curr <= end) {
+                        filled = true; 
+                    }
+                }
+
+            }
+
+            //adds this action to the undo stack
+            return generated.ToArray();
+
+        }
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="top"></param>
+        /// <param name="bottom"></param>
+        /// <param name="centerX"></param>
+        /// <param name="widthWeights"></param>
+        /// <returns></returns>
+        private Brick[] GenerateVertical(int top, int bottom, double centerX, int[] widthWeights) {
+            //list of generated bricks
+            List<Brick> generated = new List<Brick>();
+
+            //starts a random weight
+            int weight = GenerateFromWeights(widthWeights);
+
+            int curr = bottom;
+            int l = 0, r = 0;
+            
+            while (curr > top) {
+                //generates another layer
+
+                //randomly weights to one side (only affects odd)
+
+                if (rnd.Next(1) == 0) {
+                    l = (int)System.Math.Floor(centerX) - (int)System.Math.Ceiling((double)(weight-1)/2);
+                    r = (int)System.Math.Ceiling(centerX) + (int)System.Math.Floor((double)(weight-1)/2);
+                }
+                else {
+                    //right lean
+                    l = (int)System.Math.Floor(centerX) - (int)System.Math.Floor((double)(weight - 1) / 2);
+                    r = (int)System.Math.Ceiling(centerX) + (int)System.Math.Ceiling((double)(weight-1)/2);
+                }
+
+                //weightings of horizontal bricks
+                int[] hWeights = { 0, 5, 4, 5 };
+
+                //generates the horizontal bricks in the layer, from a random direction
+                Brick[] layer = rnd.Next(2) == 0 
+                    ? GenerateHorizontal(l, r, curr, hWeights, true) 
+                    : GenerateHorizontal(r, l, curr, hWeights, true);
+
+
+                //adds each to the generated list
+                foreach (Brick b in layer) {
+                    generated.Add(b);
+                }
+
+                //picks a new (different) width
+                int[] newWeight = (int[])widthWeights.Clone();
+                newWeight[weight] = 0;
+                weight = GenerateFromWeights(newWeight);
+
+                //updates the y level
+                curr--;
+            }
+
+            return generated.ToArray();
+        }
+
+        #endregion
+
 
         #region Undo/Redo
 
@@ -315,7 +452,7 @@ namespace LegoSocInstaPostMaker {
 
                 //sets up placement offsets
                 int off = right ? visSquare.Item1 : 0;
-
+                leftmost = visSquare.Item1 + border.Item1; //sets it to quite far right
 
                 //places each saved brick
                 JArray jar = JArray.Parse(json.Value<JArray>("bricks").ToString());
@@ -327,6 +464,8 @@ namespace LegoSocInstaPostMaker {
                         j.Value<int>("y")
                     );
 
+                    //gets the furthest left brick for further use
+                    leftmost = System.Math.Min(j.Value<int>("x") + off, leftmost);
                 }
 
 
@@ -639,9 +778,255 @@ namespace LegoSocInstaPostMaker {
 
         #endregion
 
+        #region Generate
+
+        //border at the top
+        private void GenerateTop_Click(object sender, RoutedEventArgs e) {
+            //where to start from
+            int offset = GenerateFromWeights(new int[] { 1,1,1,1 });
+            //weights of each length of brick
+            int[] weights = { 3, 7, 10, 80 };
+
+            //settings for if there's a border loaded already
+            int r;
+            bool hasLeftmost;
+            if (leftmost < 0 ) {
+                r = (border.Item1 + visSquare.Item1) + GenerateFromWeights(new int[] { 1, 1, 1, 1 });
+                hasLeftmost = false;
+            }
+            else {
+                r = leftmost;
+                hasLeftmost = true;
+            }
+
+            //generates the bricks
+            Brick[] generated = GenerateHorizontal(
+                border.Item1 - offset, 
+                r, 
+                (border.Item2 - 1), 
+                weights,
+                hasLeftmost);
+        
+            //adds an action of placing them all down
+            actions.DoAction(new Action(ActionType.Place, generated));
+        }
+
+        //border at the bottom
+        private void GenerateBottom_Click(object sender, RoutedEventArgs e) {
+            //where to start from
+            int offset = GenerateFromWeights(new int[] { 1, 1, 1, 1 });
+            //weights of each length of brick
+            int[] weights = { 3, 7, 10, 80 };
+
+            //settings for if there's a border loaded already
+            int r;
+            bool hasLeftmost;
+            if (leftmost < 0) {
+                r = (border.Item1 + visSquare.Item1) + GenerateFromWeights(new int[] { 1, 1, 1, 1 });
+                hasLeftmost = false;
+            }
+            else {
+                r = leftmost;
+                hasLeftmost = true;
+            }
+
+            //generates the bricks
+            Brick[] generated = GenerateHorizontal(
+                border.Item1 - offset, 
+                r,
+                (border.Item2 + visSquare.Item2 - 2), 
+                weights,
+                hasLeftmost);
+
+            //adds an action of placing them all down
+            actions.DoAction(new Action(ActionType.Place, generated));
+        }
+
+        //border at the left side
+        private void GenerateLeft_Click(object sender, RoutedEventArgs e) {
+            //weights of each possible width
+            int[] weights = { 0, 0, 0, 2, 30, 10, 30, 7, 1};
+
+            //generates the bricks
+            Brick[] generated = GenerateVertical(
+                border.Item2/2 - 1, 
+                (border.Item2/2) + visSquare.Item2 - 1, 
+                border.Item1+0.5, 
+                weights);
+
+            //adds an action of placing them all down
+            actions.DoAction(new Action(ActionType.Place, generated));
+        }
+
+        //border at the right side
+        private void GenerateRight_Click(object sender, RoutedEventArgs e) {
+            //weights of each possible width
+            int[] weights = { 0, 0, 0, 2, 30, 10, 30, 7, 1 };
+
+            //generates the bricks
+            Brick[] generated = GenerateVertical(
+                border.Item2 / 2 - 1,
+                (border.Item2 / 2) + visSquare.Item2 - 1,
+                border.Item1 + visSquare.Item1 + 0.5,
+                weights);
+
+            //adds an action of placing them all down
+            actions.DoAction(new Action(ActionType.Place, generated));
+        }
+
+
+        //top, bottom and left border
+        private void GenerateTBL_Click(object sender, RoutedEventArgs e) {
+            //where to start from
+            int offset = GenerateFromWeights(new int[] { 1, 1, 1, 1 });
+            //weights of each side
+            int[] hWeights = { 3, 7, 10, 80 };
+            int[] vWeights = { 0, 0, 0, 2, 30, 10, 30, 7, 1 };
+
+            //settings for if there's a border loaded already
+            int right;
+            bool hasLeftmost;
+            if (leftmost < 0) {
+                right = (border.Item1 + visSquare.Item1) + GenerateFromWeights(new int[] { 1, 1, 1, 1 });
+                hasLeftmost = false;
+            }
+            else {
+                right = leftmost;
+                hasLeftmost = true;
+            }
+
+            //generates top
+            Brick[] t = GenerateHorizontal(
+                border.Item1 - offset,
+                right,
+                (border.Item2 - 1),
+                hWeights,
+                hasLeftmost);
+
+            //regenerates offset
+            offset = GenerateFromWeights(new int[] { 1, 1, 1, 1 });
+
+            //generates bottom
+            Brick[] b = GenerateHorizontal(
+                border.Item1 - offset,
+                right,
+                (border.Item2 + visSquare.Item2 - 2),
+                hWeights,
+                hasLeftmost);
+
+
+            //generates left
+            Brick[] l = GenerateVertical(
+                border.Item2 / 2,
+                (border.Item2 / 2) + visSquare.Item2 - 2,
+                border.Item1 + 0.5,
+                vWeights);
+
+            //collects all generated bricks into one array
+            Brick[] generated = new Brick[t.Length + b.Length + l.Length];
+            t.CopyTo(generated, 0);
+            b.CopyTo(generated, t.Length);
+            l.CopyTo(generated, t.Length + b.Length);
+
+
+            //adds an action of placing them all down
+            actions.DoAction(new Action(ActionType.Place, generated));
+        }
+
+        //all four borders
+        private void GenerateAll_Click(object sender, RoutedEventArgs e) {
+            //where to start from
+            int offset = GenerateFromWeights(new int[] { 1, 1, 1, 1 });
+            //weights of each side
+            int[] hWeights = { 3, 7, 10, 80 };
+            int[] vWeights = { 0, 0, 0, 2, 30, 10, 30, 7, 1 };
+
+            //settings for if there's a border loaded already
+            int right;
+            bool hasLeftmost;
+            if (leftmost < 0) {
+                right = (border.Item1 + visSquare.Item1) + GenerateFromWeights(new int[] { 1, 1, 1, 1 });
+                hasLeftmost = false;
+            }
+            else {
+                right = leftmost;
+                hasLeftmost = true;
+            }
+
+            //generates top
+            Brick[] t = GenerateHorizontal(
+                border.Item1 - offset,
+                right,
+                (border.Item2 - 1),
+                hWeights,
+                hasLeftmost);
+            
+            //regenerates offset
+            offset = GenerateFromWeights(new int[] { 1, 1, 1, 1 });
+            
+            //generates bottom
+            Brick[] b = GenerateHorizontal(
+                border.Item1 - offset,
+                right,
+                (border.Item2 + visSquare.Item2 - 2),
+                hWeights,
+                hasLeftmost);
+
+
+            //generates left
+            Brick[] l = GenerateVertical(
+                border.Item2 / 2,
+                (border.Item2 / 2) + visSquare.Item2 - 2,
+                border.Item1 + 0.5,
+                vWeights);
+
+            //generates right
+            Brick[] r = GenerateVertical(
+                border.Item2 / 2 ,
+                (border.Item2 / 2) + visSquare.Item2 - 2,
+                border.Item1 + visSquare.Item1 + 0.5,
+                vWeights);
+
+            //collects all generated bricks into one array
+            Brick[] generated = new Brick[t.Length + b.Length + l.Length + r.Length];
+            t.CopyTo(generated, 0);
+            b.CopyTo(generated, t.Length);
+            l.CopyTo(generated, t.Length + b.Length);
+            r.CopyTo(generated, t.Length + b.Length + l.Length);
+
+
+            //adds an action of placing them all down
+            actions.DoAction(new Action(ActionType.Place, generated));
+        }
+
         #endregion
 
         #endregion
+
+        #endregion
+
+
+        #region Utils
+        //picks a random index from a list of weights
+        static int GenerateFromWeights(int[] weights) {
+            int sum = weights.Sum();
+
+            int r = rnd.Next(sum);
+
+            for (int i=0; i<weights.Length; i++) {
+                if (weights[i]>r) {
+                    return i;
+                }
+                else {
+                    r -= weights[i];
+                }
+            }
+
+            return weights.Last();
+        }
+
+        #endregion
+
 
     }
 
