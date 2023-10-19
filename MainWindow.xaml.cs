@@ -568,6 +568,20 @@ namespace LegoSocInstaPostMaker {
                 //redo
                 Redo();
             }
+            
+            //keyboard shortcuts for different 
+            else if (e.KeyboardDevice.IsKeyDown(Key.D1)) {
+                clickToPlace = 1;
+            }
+            else if (e.KeyboardDevice.IsKeyDown(Key.D2)) {
+                clickToPlace = 2;
+            }
+            else if (e.KeyboardDevice.IsKeyDown(Key.D3)) {
+                clickToPlace = 3;
+            }
+            else if (e.KeyboardDevice.IsKeyDown(Key.D4)) {
+                clickToPlace = 4;
+            }
 
         }
 
