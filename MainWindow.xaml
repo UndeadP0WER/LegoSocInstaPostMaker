@@ -29,6 +29,7 @@
                 <Separator/>
                 <MenuItem Header="_Open Centre" Click="OpenCentre_Click"/>
                 <MenuItem Header="Open _Right" Click="OpenRight_Click"/>
+                <MenuItem Header="Open _Left" Click="OpenLeft_Click"/>
 
             </MenuItem>
             <MenuItem Header="_Export" Click="Export_Click"/>
@@ -39,7 +40,8 @@
                 <MenuItem Header="_Left" Click="GenerateLeft_Click"/>
                 <MenuItem Header="_Right" Click="GenerateRight_Click"/>
                 <Separator/>
-                <MenuItem Header="Top, Botto_m and Left" Click="GenerateTBL_Click"/>
+                <MenuItem Header="Top, Bottom and Le_ft" Click="GenerateTBL_Click"/>
+                <MenuItem Header="Top, Bottom and Ri_ght" Click="GenerateTBR_Click"/>
                 <MenuItem Header="_All" Click="GenerateAll_Click"/>
 
             </MenuItem>

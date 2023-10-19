@@ -57,6 +57,7 @@ namespace LegoSocInstaPostMaker {
 
         //furthest left when loading in
         int leftmost = -1;
+        int rightmost = 0;
 
         //random
         static System.Random rnd = new System.Random();
@@ -430,7 +431,7 @@ namespace LegoSocInstaPostMaker {
         }
 
         //loads a .lgop file
-        private void ReadFromFile(string file, bool right) {
+        private void ReadFromFile(string file, int off) {
 
             using (StreamReader sr = File.OpenText(file))
             using (JsonTextReader reader = new JsonTextReader(sr)) {
@@ -451,8 +452,8 @@ namespace LegoSocInstaPostMaker {
                 InitBrickViewer();
 
                 //sets up placement offsets
-                int off = right ? visSquare.Item1 : 0;
                 leftmost = visSquare.Item1 + border.Item1; //sets it to quite far right
+                rightmost = 0;
 
                 //places each saved brick
                 JArray jar = JArray.Parse(json.Value<JArray>("bricks").ToString());
@@ -460,12 +461,13 @@ namespace LegoSocInstaPostMaker {
                     AddBrick(
                         j.Value<int>("studs"),
                         BrickColour.FromName(j.Value<string>("colour")),
-                        j.Value<int>("x") + off,
+                        System.Math.Max(j.Value<int>("x") + off, 0),
                         j.Value<int>("y")
                     );
 
                     //gets the furthest left brick for further use
                     leftmost = System.Math.Min(j.Value<int>("x") + off, leftmost);
+                    rightmost = System.Math.Max((j.Value<int>("x") + j.Value<int>("studs") + off), rightmost);
                 }
 
 
@@ -706,7 +708,7 @@ namespace LegoSocInstaPostMaker {
             OpenFileDialog d = new OpenFileDialog();
             d.Filter = "Lego Insta Post file (*.lgop)|*.lgop";
             if (d.ShowDialog() == true) {
-                ReadFromFile(d.FileName, false);
+                ReadFromFile(d.FileName, 0);
             }
 
         }
@@ -718,7 +720,19 @@ namespace LegoSocInstaPostMaker {
             OpenFileDialog d = new OpenFileDialog();
             d.Filter = "Lego Insta Post file (*.lgop)|*.lgop";
             if (d.ShowDialog() == true) {
-                ReadFromFile(d.FileName, true);
+                ReadFromFile(d.FileName, visSquare.Item1);
+            }
+
+        }
+
+        //opens a project file to the left
+        // for building a border that lines up when placed to the left       
+        private void OpenLeft_Click(object sender, RoutedEventArgs e) {
+            //opens a file, and opens it to the left
+            OpenFileDialog d = new OpenFileDialog();
+            d.Filter = "Lego Insta Post file (*.lgop)|*.lgop";
+            if (d.ShowDialog() == true) {
+                ReadFromFile(d.FileName, -visSquare.Item1);
             }
 
         }
@@ -933,6 +947,65 @@ namespace LegoSocInstaPostMaker {
             actions.DoAction(new Action(ActionType.Place, generated));
         }
 
+        //top, bottom and left border
+        private void GenerateTBR_Click(object sender, RoutedEventArgs e) {
+            //where to start from
+            int offset = GenerateFromWeights(new int[] { 1, 1, 1, 1 });
+            //weights of each side
+            int[] hWeights = { 3, 7, 10, 80 };
+            int[] vWeights = { 0, 0, 0, 2, 30, 10, 30, 7, 1 };
+
+            //settings for if there's a border loaded already
+            int left;
+            bool hasRightmost;
+            if (rightmost == 0) {
+                left = (border.Item1 + visSquare.Item1) + GenerateFromWeights(new int[] { 1, 1, 1, 1 });
+                hasRightmost = false;
+            }
+            else {
+                left = rightmost;
+                hasRightmost = true;
+            }
+
+
+            //generates top
+            Brick[] t = GenerateHorizontal(
+                border.Item1 + visSquare.Item1 + offset,
+                left,
+                (border.Item2 - 1),
+                hWeights,
+                hasRightmost);
+
+            //regenerates offset
+            offset = GenerateFromWeights(new int[] { 1, 1, 1, 1 });
+
+            //generates bottom
+            Brick[] b = GenerateHorizontal(
+                border.Item1 + visSquare.Item1 + offset,
+                left,
+                (border.Item2 + visSquare.Item2 - 2),
+                hWeights,
+                hasRightmost);
+
+
+            //generates right
+            Brick[] r = GenerateVertical(
+                border.Item2 / 2,
+                (border.Item2 / 2) + visSquare.Item2 - 2,
+                border.Item1 + visSquare.Item1 + 0.5,
+                vWeights);
+
+            //collects all generated bricks into one array
+            Brick[] generated = new Brick[t.Length + b.Length + r.Length];
+            t.CopyTo(generated, 0);
+            b.CopyTo(generated, t.Length);
+            r.CopyTo(generated, t.Length + b.Length);
+
+
+            //adds an action of placing them all down
+            actions.DoAction(new Action(ActionType.Place, generated));
+        }
+
         //all four borders
         private void GenerateAll_Click(object sender, RoutedEventArgs e) {
             //where to start from
@@ -1025,8 +1098,8 @@ namespace LegoSocInstaPostMaker {
             return weights.Last();
         }
 
-        #endregion
 
+        #endregion
 
     }
 
