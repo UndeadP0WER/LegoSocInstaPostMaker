@@ -30,6 +30,9 @@
                 <MenuItem Header="_Open Centre" Click="OpenCentre_Click"/>
                 <MenuItem Header="Open _Right" Click="OpenRight_Click"/>
                 <MenuItem Header="Open _Left" Click="OpenLeft_Click"/>
+                <Separator/>
+                <MenuItem Header="Add R_ight" Click="AddRight_Click"/>
+                <MenuItem Header="Add L_eft" Click="AddLeft_Click"/>
 
             </MenuItem>
             <MenuItem Header="_Export" Click="Export_Click"/>

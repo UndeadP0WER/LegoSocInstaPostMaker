@@ -20,7 +20,7 @@ namespace LegoSocInstaPostMaker {
 
         /*NEXT UP: 
          * border generation
-         * * specify which side, generate based on a few params
+         * * generate based on a few params
          
          * brick settings pannel 
          * * change settings of each brick (colour from a selector, studs from a number selector thingu)
@@ -476,6 +476,45 @@ namespace LegoSocInstaPostMaker {
 
         }
 
+        private void AddFromFile(string file, int off) {
+
+            using (StreamReader sr = File.OpenText(file))
+            using (JsonTextReader reader = new JsonTextReader(sr)) {
+                //gets json
+                JToken json = JToken.ReadFrom(reader);
+
+                //sets up viewer variables
+                visSquare = (json.Value<int>("xVisSquare"),
+                             json.Value<int>("yVisSquare"));
+
+                border = (json.Value<int>("xBorder"),
+                          json.Value<int>("yBorder"));
+
+                //sets up placement offsets
+                leftmost = visSquare.Item1 + border.Item1; //sets it to quite far right
+                rightmost = 0;
+
+                //doesnt clear or re-init grid
+
+                //places each saved brick
+                JArray jar = JArray.Parse(json.Value<JArray>("bricks").ToString());
+                foreach (JObject j in jar) {
+                    AddBrick(
+                        j.Value<int>("studs"),
+                        BrickColour.FromName(j.Value<string>("colour")),
+                        System.Math.Max(j.Value<int>("x") + off, 0),
+                        j.Value<int>("y")
+                    );
+
+                    //gets the furthest left brick for further use
+                    leftmost = System.Math.Min(j.Value<int>("x") + off, leftmost);
+                    rightmost = System.Math.Max((j.Value<int>("x") + j.Value<int>("studs") + off), rightmost);
+                }
+
+
+            }
+
+        }
         #endregion
 
         #region MenuBarThings
@@ -750,6 +789,31 @@ namespace LegoSocInstaPostMaker {
             }
 
         }
+
+        //adds a project to the right
+        // for building a border that lines up when placed to the right
+        private void AddRight_Click(object sender, RoutedEventArgs e) {
+            //opens a file, and opens it to the right
+            OpenFileDialog d = new OpenFileDialog();
+            d.Filter = "Lego Insta Post file (*.lgop)|*.lgop";
+            if (d.ShowDialog() == true) {
+                AddFromFile(d.FileName, visSquare.Item1);
+            }
+
+        }
+
+        //adds a project file to the left
+        // for building a border that lines up when placed to the left       
+        private void AddLeft_Click(object sender, RoutedEventArgs e) {
+            //opens a file, and opens it to the left
+            OpenFileDialog d = new OpenFileDialog();
+            d.Filter = "Lego Insta Post file (*.lgop)|*.lgop";
+            if (d.ShowDialog() == true) {
+                AddFromFile(d.FileName, -visSquare.Item1);
+            }
+
+        }
+
 
         #endregion
 
